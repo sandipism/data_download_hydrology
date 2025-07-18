@@ -1,5 +1,6 @@
 client_config_backend: service
-client_config_file: credentials.json
+service_config:
+  client_json_file_path: credentials.json
 save_credentials: False
 save_credentials_backend: file
 save_credentials_file: credentials.json
