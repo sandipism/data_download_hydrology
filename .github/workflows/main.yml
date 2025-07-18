@@ -41,25 +41,5 @@ jobs:
       - name: Upload CSV files to Google Drive
         env:
           FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
-        run: |
-          python <<EOF
-          from pydrive2.auth import GoogleAuth
-          from pydrive2.drive import GoogleDrive
-          import os
-
-          gauth = GoogleAuth(settings_file='gdrive-config/settings.yaml')
-          gauth.ServiceAuth()
-          drive = GoogleDrive(gauth)
-
-          data_dir = "data"
-          for file_name in os.listdir(data_dir):
-              if file_name.endswith(".csv"):
-                  full_path = os.path.join(data_dir, file_name)
-                  drive_file = drive.CreateFile({
-                      'title': file_name,
-                      'parents': [{'id': os.environ['FOLDER_ID']}]
-                  })
-                  drive_file.SetContentFile(full_path)
-                  drive_file.Upload()
-                  print(f"Uploaded {file_name} to Google Drive")
-          EOF
+        run: python upload_to_gdrive.py
+          
