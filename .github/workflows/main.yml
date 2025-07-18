@@ -2,7 +2,7 @@ name: Scheduled Hydrology Data Fetch
 
 on:
   schedule:
-    - cron: '15 4 * * *'  # 10:15 a.m. Nepal Time
+    - cron: '15 4 * * *'  # Daily at 10:15 AM Nepal Time
   workflow_dispatch:
 
 jobs:
@@ -10,29 +10,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: Set up Python 3.10
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
       - name: Install dependencies
         run: |
+          python -m pip install --upgrade pip
           pip install requests pandas pydrive2
 
-      - name: Save credentials.json
-        run: |
-          echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
+      - name: Inject credentials.json from secret
+        run: echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
 
       - name: Run hydrology data script
         env:
           API_KEY: ${{ secrets.API_KEY }}
-        run: |
-          python main.py
+        run: python main.py
 
-      - name: Upload to Google Drive
+      - name: Upload CSV files to Google Drive
         env:
           FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
@@ -41,14 +40,19 @@ jobs:
           from pydrive2.drive import GoogleDrive
           import os
 
-          gauth = GoogleAuth()
-          gauth.LoadServiceConfigFile("credentials.json")
+          gauth = GoogleAuth(settings_file='gdrive-config/settings.yaml')
           gauth.ServiceAuth()
           drive = GoogleDrive(gauth)
 
-          for file_name in os.listdir("data"):
+          data_dir = "data"
+          for file_name in os.listdir(data_dir):
               if file_name.endswith(".csv"):
-                  f = drive.CreateFile({'title': file_name, 'parents': [{"id": os.environ["FOLDER_ID"]}]})
-                  f.SetContentFile(os.path.join("data", file_name))
-                  f.Upload()
+                  full_path = os.path.join(data_dir, file_name)
+                  drive_file = drive.CreateFile({
+                      'title': file_name,
+                      'parents': [{'id': os.environ['FOLDER_ID']}]
+                  })
+                  drive_file.SetContentFile(full_path)
+                  drive_file.Upload()
+                  print(f"Uploaded {file_name} to Google Drive")
           EOF
